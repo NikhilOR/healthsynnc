@@ -1,8 +1,7 @@
 import axios from 'axios';
-import Constants from 'expo-constants';
-import { getItem, setItem, removeItem } from '../utils/storage';
+import { storage } from '../../src/utils/storage';
 
-const API_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL;
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
@@ -14,7 +13,7 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   async (config) => {
-    const token = await getItem('auth_token');
+    const token = await storage.getItem('auth_token', '');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -30,10 +29,8 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
-      await removeItem('auth_token');
-      await removeItem('user');
-      // Navigate to login would be handled by the app
+      await storage.removeItem('auth_token');
+      await storage.removeItem('user');
     }
     return Promise.reject(error);
   }

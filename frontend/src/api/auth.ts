@@ -1,5 +1,5 @@
 import api from './client';
-import { setItem, removeItem } from '../utils/storage';
+import { storage } from '../../src/utils/storage';
 
 export interface RegisterData {
   email: string;
@@ -16,8 +16,8 @@ export const authApi = {
   register: async (data: RegisterData) => {
     const response = await api.post('/auth/register', data);
     if (response.data.access_token) {
-      await setItem('auth_token', response.data.access_token);
-      await setItem('user', JSON.stringify(response.data.user));
+      await storage.setItem('auth_token', response.data.access_token);
+      await storage.setItem('user', JSON.stringify(response.data.user));
     }
     return response.data;
   },
@@ -25,15 +25,15 @@ export const authApi = {
   login: async (data: LoginData) => {
     const response = await api.post('/auth/login', data);
     if (response.data.access_token) {
-      await setItem('auth_token', response.data.access_token);
-      await setItem('user', JSON.stringify(response.data.user));
+      await storage.setItem('auth_token', response.data.access_token);
+      await storage.setItem('user', JSON.stringify(response.data.user));
     }
     return response.data;
   },
 
   logout: async () => {
-    await removeItem('auth_token');
-    await removeItem('user');
+    await storage.removeItem('auth_token');
+    await storage.removeItem('user');
   },
 
   getProfile: async () => {
@@ -43,7 +43,7 @@ export const authApi = {
 
   updateProfile: async (data: any) => {
     const response = await api.put('/auth/profile', data);
-    await setItem('user', JSON.stringify(response.data));
+    await storage.setItem('user', JSON.stringify(response.data));
     return response.data;
   },
 };

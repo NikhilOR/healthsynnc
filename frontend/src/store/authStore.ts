@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { authApi, RegisterData, LoginData } from '../api/auth';
-import { getItem } from '../utils/storage';
+import { storage } from '../utils/storage';
 
 interface User {
   email: string;
@@ -63,11 +63,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   loadUser: async () => {
     try {
-      const token = await getItem('auth_token');
+      const token = await storage.getItem('auth_token', '');
       if (token) {
-        const userStr = await getItem('user');
+        const userStr = await storage.getItem('user', '');
         if (userStr) {
-          const user = JSON.parse(userStr);
+          const user = JSON.parse(userStr as string);
           set({ user, isAuthenticated: true });
         }
       }
