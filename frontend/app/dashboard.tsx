@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Dimensions } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Dimensions, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { dashboardApi } from '../src/api/dashboard';
 import { useAuthStore } from '../src/store/authStore';
 
 const { width } = Dimensions.get('window');
-const cardWidth = (width - 48) / 2;
+const CARD_GAP = 12;
+const cardWidth = (width - 40 - CARD_GAP) / 2;
 
 export default function DashboardScreen() {
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const router = useRouter();
 
   const fetchSummary = async () => {
@@ -34,172 +36,274 @@ export default function DashboardScreen() {
     fetchSummary();
   };
 
-  const handleLogout = async () => {
-    await logout();
-    router.replace('/login');
-  };
-
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <Text>Loading...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
-  const getHealthScoreColor = (score: number): [string, string] => {
-    if (score >= 80) return ['#10b981', '#059669'];
-    if (score >= 60) return ['#f59e0b', '#d97706'];
-    return ['#ef4444', '#dc2626'];
-  };
+  const score = summary?.health_score || 0;
+  const scoreColor = score >= 80 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444';
+  const greeting = new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening';
+
+  const caloriePercent = summary?.calories?.goal > 0 ? Math.min(100, (summary.calories.consumed / summary.calories.goal) * 100) : 0;
+  const waterPercent = summary?.water?.percentage || 0;
 
   return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-    >
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.greeting}>Hello,</Text>
-            <Text style={styles.userName}>{user?.name || 'User'}</Text>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            <TouchableOpacity onPress={() => router.push('/profile')} style={styles.logoutButton}>
-              <Text style={styles.logoutEmoji}>👤</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-              <Text style={styles.logoutEmoji}>🚪</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.healthScoreContainer}>
-          <LinearGradient colors={getHealthScoreColor(summary?.health_score || 0)} style={styles.healthScoreRing}>
-            <View style={styles.healthScoreInner}>
-              <Text style={styles.healthScoreValue}>{summary?.health_score || 0}</Text>
-              <Text style={styles.healthScoreLabel}>Health Score</Text>
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={['#6366f1', '#8b5cf6', '#ec4899']} style={styles.headerGradient}>
+        <SafeAreaView edges={['top']}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerTop}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.greeting}>{greeting} 👋</Text>
+                <Text style={styles.userName}>{user?.name || 'User'}</Text>
+              </View>
+              <TouchableOpacity onPress={() => router.push('/profile')} style={styles.profileBtn}>
+                <Text style={styles.profileInitial}>{(user?.name || 'U').charAt(0).toUpperCase()}</Text>
+              </TouchableOpacity>
             </View>
-          </LinearGradient>
-        </View>
+
+            {/* Health Score Card */}
+            <View style={styles.scoreCard}>
+              <View style={styles.scoreLeft}>
+                <Text style={styles.scoreLabel}>HEALTH SCORE</Text>
+                <Text style={[styles.scoreValue, { color: scoreColor }]}>{score}</Text>
+                <Text style={styles.scoreSubtext}>
+                  {score >= 80 ? '🌟 Excellent!' : score >= 60 ? '👍 Good progress' : '💪 Keep going!'}
+                </Text>
+              </View>
+              <View style={[styles.scoreRing, { borderColor: scoreColor }]}>
+                <Text style={[styles.scoreRingText, { color: scoreColor }]}>{score}</Text>
+                <Text style={styles.scoreRingLabel}>/100</Text>
+              </View>
+            </View>
+          </View>
+        </SafeAreaView>
       </LinearGradient>
 
-      <View style={styles.statsContainer}>
-        <TouchableOpacity style={[styles.statCard, { backgroundColor: '#ffe5e5' }]} onPress={() => router.push('/food')}>
-          <Text style={styles.statEmoji}>🔥</Text>
-          <Text style={styles.statValue}>{Math.round(summary?.calories?.consumed || 0)}</Text>
-          <Text style={styles.statLabel}>Calories</Text>
-          <Text style={styles.statSubtext}>Goal: {summary?.calories?.goal || 0}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.statCard, { backgroundColor: '#e5f3ff' }]} onPress={() => router.push('/water')}>
-          <Text style={styles.statEmoji}>💧</Text>
-          <Text style={styles.statValue}>{summary?.water?.consumed || 0}ml</Text>
-          <Text style={styles.statLabel}>Water</Text>
-          <Text style={styles.statSubtext}>{summary?.water?.percentage || 0}%</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.statCard, { backgroundColor: '#fff4e5' }]} onPress={() => router.push('/weight')}>
-          <Text style={styles.statEmoji}>⚖️</Text>
-          <Text style={styles.statValue}>{summary?.weight?.current || 0}kg</Text>
-          <Text style={styles.statLabel}>Weight</Text>
-          <Text style={styles.statSubtext}>Goal: {summary?.weight?.goal || 0}kg</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.statCard, { backgroundColor: '#e5ffe5' }]} onPress={() => router.push('/expenses')}>
-          <Text style={styles.statEmoji}>💰</Text>
-          <Text style={styles.statValue}>₹{summary?.expenses?.today || 0}</Text>
-          <Text style={styles.statLabel}>Expenses</Text>
-          <Text style={styles.statSubtext}>Today</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity style={styles.fullWidthCard} onPress={() => router.push('/smoking')}>
-        <LinearGradient colors={['#ff6b6b', '#ee5a6f']} style={styles.smokingGradient}>
-          <View style={styles.smokingContent}>
-            <Text style={{ fontSize: 32 }}>🚬</Text>
-            <View style={styles.smokingStats}>
-              <Text style={styles.smokingValue}>{summary?.smoking?.cigarettes_today || 0}</Text>
-              <Text style={styles.smokingLabel}>Cigarettes Today</Text>
-            </View>
-            <View style={styles.smokingCost}>
-              <Text style={styles.smokingCostValue}>₹{summary?.smoking?.cost_today || 0}</Text>
-              <Text style={styles.smokingCostLabel}>Spent</Text>
-            </View>
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
-
-      <View style={styles.quickActionsContainer}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/food/add')}>
-            <View style={[styles.quickActionIcon, { backgroundColor: '#ff6b6b' }]}>
-              <Text style={{ fontSize: 24 }}>🍽️</Text>
-            </View>
-            <Text style={styles.quickActionText}>Log Meal</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/weight/add')}>
-            <View style={[styles.quickActionIcon, { backgroundColor: '#ffa94d' }]}>
-              <Text style={{ fontSize: 24 }}>⚖️</Text>
-            </View>
-            <Text style={styles.quickActionText}>Log Weight</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/ai-coach')}>
-            <View style={[styles.quickActionIcon, { backgroundColor: '#667eea' }]}>
-              <Text style={{ fontSize: 24 }}>🤖</Text>
-            </View>
-            <Text style={styles.quickActionText}>AI Coach</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/analytics')}>
-            <View style={[styles.quickActionIcon, { backgroundColor: '#51cf66' }]}>
-              <Text style={{ fontSize: 24 }}>📊</Text>
-            </View>
-            <Text style={styles.quickActionText}>Analytics</Text>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Today's Stats Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Today's Stats</Text>
+          <TouchableOpacity onPress={() => router.push('/analytics')}>
+            <Text style={styles.seeAll}>See All →</Text>
           </TouchableOpacity>
         </View>
-      </View>
 
-      <View style={{ height: 80 }} />
-    </ScrollView>
+        <View style={styles.statsGrid}>
+          {/* Calories */}
+          <TouchableOpacity 
+            style={[styles.statCard, { width: cardWidth }]}
+            onPress={() => router.push('/food')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.statHeader}>
+              <View style={[styles.statIconBox, { backgroundColor: '#fef2f2' }]}>
+                <Text style={styles.statIcon}>🔥</Text>
+              </View>
+              <Text style={styles.statBadge}>{Math.round(caloriePercent)}%</Text>
+            </View>
+            <Text style={styles.statValue}>{Math.round(summary?.calories?.consumed || 0)}</Text>
+            <Text style={styles.statUnit}>kcal eaten</Text>
+            <View style={styles.statBar}>
+              <View style={[styles.statBarFill, { width: `${caloriePercent}%`, backgroundColor: '#ef4444' }]} />
+            </View>
+            <Text style={styles.statFooter}>Goal: {summary?.calories?.goal || 0}</Text>
+          </TouchableOpacity>
+
+          {/* Water */}
+          <TouchableOpacity 
+            style={[styles.statCard, { width: cardWidth }]}
+            onPress={() => router.push('/water')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.statHeader}>
+              <View style={[styles.statIconBox, { backgroundColor: '#eff6ff' }]}>
+                <Text style={styles.statIcon}>💧</Text>
+              </View>
+              <Text style={styles.statBadge}>{Math.round(waterPercent)}%</Text>
+            </View>
+            <Text style={styles.statValue}>{summary?.water?.consumed || 0}</Text>
+            <Text style={styles.statUnit}>ml water</Text>
+            <View style={styles.statBar}>
+              <View style={[styles.statBarFill, { width: `${waterPercent}%`, backgroundColor: '#3b82f6' }]} />
+            </View>
+            <Text style={styles.statFooter}>Goal: {summary?.water?.goal || 0}ml</Text>
+          </TouchableOpacity>
+
+          {/* Weight */}
+          <TouchableOpacity 
+            style={[styles.statCard, { width: cardWidth }]}
+            onPress={() => router.push('/weight')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.statHeader}>
+              <View style={[styles.statIconBox, { backgroundColor: '#fff7ed' }]}>
+                <Text style={styles.statIcon}>⚖️</Text>
+              </View>
+              <Text style={styles.statBadge}>BMI {summary?.weight?.bmi || '—'}</Text>
+            </View>
+            <Text style={styles.statValue}>{summary?.weight?.current || 0}</Text>
+            <Text style={styles.statUnit}>kg current</Text>
+            <View style={styles.statBar}>
+              <View style={[styles.statBarFill, { width: '70%', backgroundColor: '#f97316' }]} />
+            </View>
+            <Text style={styles.statFooter}>Goal: {summary?.weight?.goal || 0}kg</Text>
+          </TouchableOpacity>
+
+          {/* Expenses */}
+          <TouchableOpacity 
+            style={[styles.statCard, { width: cardWidth }]}
+            onPress={() => router.push('/expenses')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.statHeader}>
+              <View style={[styles.statIconBox, { backgroundColor: '#f0fdf4' }]}>
+                <Text style={styles.statIcon}>💰</Text>
+              </View>
+              <Text style={styles.statBadge}>Today</Text>
+            </View>
+            <Text style={styles.statValue}>₹{summary?.expenses?.today || 0}</Text>
+            <Text style={styles.statUnit}>spent</Text>
+            <View style={styles.statBar}>
+              <View style={[styles.statBarFill, { width: '40%', backgroundColor: '#22c55e' }]} />
+            </View>
+            <Text style={styles.statFooter}>View details →</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Smoking Banner */}
+        <TouchableOpacity style={styles.smokingBanner} onPress={() => router.push('/smoking')} activeOpacity={0.9}>
+          <LinearGradient colors={['#f43f5e', '#e11d48']} style={styles.smokingGradient}>
+            <View style={styles.smokingLeft}>
+              <Text style={styles.smokingEmoji}>🚬</Text>
+              <View>
+                <Text style={styles.smokingLabel}>Smoking Today</Text>
+                <Text style={styles.smokingCount}>{summary?.smoking?.cigarettes_today || 0} cigarettes</Text>
+              </View>
+            </View>
+            <View style={styles.smokingRight}>
+              <Text style={styles.smokingCost}>₹{summary?.smoking?.cost_today || 0}</Text>
+              <Text style={styles.smokingCostLabel}>spent</Text>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* Quick Actions */}
+        <Text style={[styles.sectionTitle, { marginTop: 24, marginBottom: 12, paddingHorizontal: 20 }]}>Quick Actions</Text>
+        <View style={styles.quickActions}>
+          <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/food/add')} activeOpacity={0.8}>
+            <View style={[styles.actionIcon, { backgroundColor: '#fef2f2' }]}>
+              <Text style={styles.actionEmoji}>🍽️</Text>
+            </View>
+            <Text style={styles.actionText}>Log{'\n'}Meal</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/water')} activeOpacity={0.8}>
+            <View style={[styles.actionIcon, { backgroundColor: '#eff6ff' }]}>
+              <Text style={styles.actionEmoji}>💧</Text>
+            </View>
+            <Text style={styles.actionText}>Add{'\n'}Water</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/weight/add')} activeOpacity={0.8}>
+            <View style={[styles.actionIcon, { backgroundColor: '#fff7ed' }]}>
+              <Text style={styles.actionEmoji}>⚖️</Text>
+            </View>
+            <Text style={styles.actionText}>Log{'\n'}Weight</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/ai-coach')} activeOpacity={0.8}>
+            <View style={[styles.actionIcon, { backgroundColor: '#f5f3ff' }]}>
+              <Text style={styles.actionEmoji}>🤖</Text>
+            </View>
+            <Text style={styles.actionText}>AI{'\n'}Coach</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* AI Coach Banner */}
+        <TouchableOpacity style={styles.aiBanner} onPress={() => router.push('/ai-coach')} activeOpacity={0.9}>
+          <LinearGradient colors={['#8b5cf6', '#6366f1']} style={styles.aiGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.aiTitle}>🤖 AI Health Coach</Text>
+              <Text style={styles.aiSubtitle}>Get personalized health advice powered by Gemini AI</Text>
+              <View style={styles.aiBtn}>
+                <Text style={styles.aiBtnText}>Chat Now →</Text>
+              </View>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f7fa' },
-  header: { paddingTop: 50, paddingBottom: 32, paddingHorizontal: 20, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
-  greeting: { fontSize: 16, color: '#fff', opacity: 0.9 },
-  userName: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
-  logoutButton: { padding: 8 },
-  logoutEmoji: { fontSize: 24 },
-  healthScoreContainer: { alignItems: 'center' },
-  healthScoreRing: { width: 120, height: 120, borderRadius: 60, justifyContent: 'center', alignItems: 'center' },
-  healthScoreInner: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-  healthScoreValue: { fontSize: 32, fontWeight: 'bold', color: '#333' },
-  healthScoreLabel: { fontSize: 12, color: '#666' },
-  statsContainer: { flexDirection: 'row', flexWrap: 'wrap', padding: 16, marginTop: -20 },
-  statCard: { width: cardWidth, padding: 16, borderRadius: 16, marginBottom: 16, marginRight: 16 },
-  statEmoji: { fontSize: 32, marginBottom: 8 },
-  statValue: { fontSize: 24, fontWeight: 'bold', color: '#333', marginBottom: 4 },
-  statLabel: { fontSize: 14, color: '#666', marginBottom: 2 },
-  statSubtext: { fontSize: 12, color: '#999' },
-  fullWidthCard: { marginHorizontal: 16, marginBottom: 16, borderRadius: 16, overflow: 'hidden' },
-  smokingGradient: { padding: 20 },
-  smokingContent: { flexDirection: 'row', alignItems: 'center' },
-  smokingStats: { flex: 1, marginLeft: 16 },
-  smokingValue: { fontSize: 28, fontWeight: 'bold', color: '#fff' },
-  smokingLabel: { fontSize: 14, color: '#fff', opacity: 0.9 },
-  smokingCost: { alignItems: 'flex-end' },
-  smokingCostValue: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
-  smokingCostLabel: { fontSize: 12, color: '#fff', opacity: 0.9 },
-  quickActionsContainer: { paddingHorizontal: 20, marginTop: 8 },
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 16 },
-  quickActions: { flexDirection: 'row', justifyContent: 'space-between' },
-  quickAction: { alignItems: 'center' },
-  quickActionIcon: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  quickActionText: { fontSize: 12, color: '#666', textAlign: 'center' },
+  root: { flex: 1, backgroundColor: '#f9fafb' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  headerGradient: { paddingBottom: 24, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
+  headerContent: { paddingHorizontal: 20, paddingTop: 12 },
+  headerTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  greeting: { fontSize: 14, color: '#fff', opacity: 0.9, fontWeight: '500' },
+  userName: { fontSize: 22, fontWeight: '700', color: '#fff', marginTop: 2 },
+  profileBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' },
+  profileInitial: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
+  
+  scoreCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', elevation: 8, shadowColor: '#000', shadowOpacity: 0.15, shadowOffset: { width: 0, height: 4 }, shadowRadius: 12 },
+  scoreLeft: { flex: 1 },
+  scoreLabel: { fontSize: 11, fontWeight: '600', color: '#9ca3af', letterSpacing: 1.2 },
+  scoreValue: { fontSize: 42, fontWeight: '800', marginVertical: 2 },
+  scoreSubtext: { fontSize: 13, color: '#6b7280', fontWeight: '500' },
+  scoreRing: { width: 72, height: 72, borderRadius: 36, borderWidth: 6, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
+  scoreRingText: { fontSize: 22, fontWeight: '800' },
+  scoreRingLabel: { fontSize: 10, color: '#9ca3af', marginTop: -2 },
+  
+  scrollView: { flex: 1 },
+  scrollContent: { paddingTop: 20 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  seeAll: { fontSize: 13, color: '#6366f1', fontWeight: '600' },
+  
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 20, gap: CARD_GAP },
+  statCard: { backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: CARD_GAP, borderWidth: 1, borderColor: '#f3f4f6' },
+  statHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  statIconBox: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  statIcon: { fontSize: 18 },
+  statBadge: { fontSize: 10, fontWeight: '700', color: '#6b7280', backgroundColor: '#f3f4f6', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  statValue: { fontSize: 24, fontWeight: '800', color: '#111827' },
+  statUnit: { fontSize: 12, color: '#6b7280', marginTop: -2, marginBottom: 8 },
+  statBar: { height: 6, backgroundColor: '#f3f4f6', borderRadius: 3, overflow: 'hidden', marginBottom: 6 },
+  statBarFill: { height: '100%', borderRadius: 3 },
+  statFooter: { fontSize: 10, color: '#9ca3af', fontWeight: '500' },
+  
+  smokingBanner: { marginHorizontal: 20, marginTop: 8, borderRadius: 16, overflow: 'hidden', elevation: 4 },
+  smokingGradient: { padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  smokingLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  smokingEmoji: { fontSize: 32, marginRight: 12 },
+  smokingLabel: { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
+  smokingCount: { fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 2 },
+  smokingRight: { alignItems: 'flex-end' },
+  smokingCost: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  smokingCostLabel: { fontSize: 11, color: 'rgba(255,255,255,0.85)' },
+  
+  quickActions: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20 },
+  actionCard: { alignItems: 'center', flex: 1 },
+  actionIcon: { width: 56, height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  actionEmoji: { fontSize: 26 },
+  actionText: { fontSize: 12, color: '#374151', textAlign: 'center', fontWeight: '600', lineHeight: 16 },
+  
+  aiBanner: { marginHorizontal: 20, marginTop: 24, borderRadius: 20, overflow: 'hidden', elevation: 6 },
+  aiGradient: { padding: 20, flexDirection: 'row', alignItems: 'center' },
+  aiTitle: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 4 },
+  aiSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.9)', marginBottom: 12, lineHeight: 18 },
+  aiBtn: { backgroundColor: 'rgba(255,255,255,0.25)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, alignSelf: 'flex-start' },
+  aiBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 });
