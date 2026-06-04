@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { waterApi } from '../src/api/water';
 
 export default function WaterScreen() {
@@ -38,7 +37,7 @@ export default function WaterScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Text style={{ fontSize: 24, color: '#333' }}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Water Tracking</Text>
         <View style={{ width: 24 }} />
@@ -62,7 +61,7 @@ export default function WaterScreen() {
               style={styles.waterButton}
               onPress={() => logWater(250)}
             >
-              <Ionicons name="water" size={32} color="#4dabf7" />
+              <Text style={{ fontSize: 36 }}>💧</Text>
               <Text style={styles.buttonText}>250ml</Text>
             </TouchableOpacity>
 
@@ -70,7 +69,7 @@ export default function WaterScreen() {
               style={styles.waterButton}
               onPress={() => logWater(500)}
             >
-              <Ionicons name="water" size={32} color="#4dabf7" />
+              <Text style={{ fontSize: 36 }}>💧</Text>
               <Text style={styles.buttonText}>500ml</Text>
             </TouchableOpacity>
 
@@ -78,7 +77,7 @@ export default function WaterScreen() {
               style={styles.waterButton}
               onPress={() => logWater(750)}
             >
-              <Ionicons name="water" size={32} color="#4dabf7" />
+              <Text style={{ fontSize: 36 }}>💧</Text>
               <Text style={styles.buttonText}>750ml</Text>
             </TouchableOpacity>
 
@@ -86,7 +85,7 @@ export default function WaterScreen() {
               style={styles.waterButton}
               onPress={() => logWater(1000)}
             >
-              <Ionicons name="water" size={32} color="#4dabf7" />
+              <Text style={{ fontSize: 36 }}>💧</Text>
               <Text style={styles.buttonText}>1000ml</Text>
             </TouchableOpacity>
           </View>

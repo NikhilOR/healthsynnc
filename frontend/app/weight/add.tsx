@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { weightApi } from '../../src/api/weight';
 
 export default function AddWeightScreen() {
@@ -36,7 +35,7 @@ export default function AddWeightScreen() {
     >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Text style={{ fontSize: 24, color: '#333' }}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Log Weight</Text>
         <View style={{ width: 24 }} />
