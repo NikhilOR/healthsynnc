@@ -1,0 +1,145 @@
+
+============================================================
+[93mHealthSync Backend API Testing Suite[0m
+Base URL: https://vitals-insights.preview.emergentagent.com/api
+Test User: testuser_1780595381@healthsync.com
+============================================================
+
+============================================================
+[93mUser Authentication[0m
+============================================================
+
+[94mTesting: POST /auth/register[0m
+[92m✓ User registered successfully: testuser_1780595381@healthsync.com[0m
+[92m✓ Token received: eyJhbGciOiJIUzI1NiIs...[0m
+
+[94mTesting: POST /auth/login[0m
+[92m✓ Login successful: Test User[0m
+
+[94mTesting: GET /auth/profile[0m
+[92m✓ Profile retrieved: Test User (testuser_1780595381@healthsync.com)[0m
+
+============================================================
+[93mDashboard[0m
+============================================================
+
+[94mTesting: GET /dashboard/summary[0m
+[92m✓ Dashboard summary retrieved[0m
+[92m✓   Health Score: 33[0m
+[92m✓   Calories: 0/2000[0m
+[92m✓   Water: 0ml/2000ml[0m
+
+============================================================
+[93mFood Tracking[0m
+============================================================
+
+[94mTesting: GET /food/items[0m
+[92m✓ Found 1 food items[0m
+[92m✓   First item: Banana - 105 cal[0m
+
+[94mTesting: POST /food/items[0m
+[92m✓ Custom food created: Custom Protein Shake[0m
+
+[94mTesting: POST /food/logs[0m
+[92m✓ Food logged: Banana - 210.0 cal[0m
+
+[94mTesting: GET /food/logs[0m
+[92m✓ Retrieved 1 food logs[0m
+[92m✓   Latest: Banana - breakfast[0m
+
+[94mTesting: DELETE /food/logs/{log_id}[0m
+[92m✓ Food log deleted successfully[0m
+
+============================================================
+[93mWater Tracking[0m
+============================================================
+
+[94mTesting: POST /water/logs[0m
+[92m✓ Water logged: 500ml[0m
+
+[94mTesting: GET /water/logs[0m
+[92m✓ Retrieved water logs - Total: 500ml[0m
+
+[94mTesting: GET /water/daily-progress[0m
+[92m✓ Water progress: 500ml / 2000ml (25.0%)[0m
+
+============================================================
+[93mWeight Tracking[0m
+============================================================
+
+[94mTesting: POST /weight/logs[0m
+[92m✓ Weight logged: 75.5kg - BMI: 26.12[0m
+
+[94mTesting: GET /weight/logs[0m
+[92m✓ Retrieved 1 weight logs[0m
+[92m✓   Latest: 75.5kg - BMI: 26.12[0m
+
+[94mTesting: GET /weight/progress[0m
+[92m✓ Weight progress retrieved - Trend: stable[0m
+[92m✓   Current: 75.5kg / Goal: 70.0kg[0m
+
+============================================================
+[93mExpense Tracking[0m
+============================================================
+
+[94mTesting: POST /expenses/logs[0m
+[92m✓ Expense logged: Organic Vegetables - $25.5[0m
+
+[94mTesting: GET /expenses/logs[0m
+[92m✓ Retrieved 1 expense logs[0m
+[92m✓   Latest: Organic Vegetables - $25.5[0m
+
+[94mTesting: GET /expenses/summary[0m
+[92m✓ Expense summary retrieved - Total: $25.5[0m
+
+============================================================
+[93mSmoking Tracking[0m
+============================================================
+
+[94mTesting: POST /smoking/logs[0m
+[92m✓ Cigarette logged: Marlboro[0m
+
+[94mTesting: GET /smoking/logs[0m
+[92m✓ Retrieved 1 cigarette logs[0m
+
+[94mTesting: GET /smoking/statistics[0m
+[92m✓ Smoking statistics retrieved[0m
+[92m✓   Today: 1 cigarettes[0m
+[92m✓   Week: 1 cigarettes[0m
+
+[94mTesting: GET /smoking/quit-progress[0m
+[92m✓ Quit progress retrieved[0m
+[92m✓   Smoke-free hours: 0.0[0m
+
+============================================================
+[93mAI Features[0m
+============================================================
+
+[94mTesting: POST /ai/chat[0m
+[92m✓ AI chat response received[0m
+[92m✓   Response preview: Hello, Test User! It looks like we are starting the day with a clean slate on your calorie goal. Sin...[0m
+
+[94mTesting: GET /ai/weekly-report[0m
+[92m✓ Weekly report generated[0m
+[92m✓   Weekly calories: 0[0m
+
+============================================================
+[93mGamification[0m
+============================================================
+
+[94mTesting: GET /gamification/achievements[0m
+[92m✓ Retrieved 0 achievements[0m
+
+[94mTesting: GET /gamification/streaks[0m
+[92m✓ Streaks retrieved[0m
+[92m✓   Calorie streak: 0 days[0m
+
+============================================================
+[93mTEST SUMMARY[0m
+============================================================
+Total Tests: 26
+[92mPassed: 26[0m
+[91mFailed: 0[0m
+Success Rate: 100.0%
+============================================================
+
