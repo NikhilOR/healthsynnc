@@ -881,10 +881,75 @@ async def get_streaks(current_user = Depends(get_current_user)):
         "smoke_free_streak": 0  # Would need more complex logic
     }
 
+# ==================== CHART/TREND ROUTES ====================
+
+@api_router.get("/charts/food-weekly")
+async def chart_food_weekly(current_user = Depends(get_current_user)):
+    """Get last 7 days food calorie totals"""
+    user_email = current_user["email"]
+    today = datetime.utcnow().date()
+    data = []
+    labels = []
+    for i in range(6, -1, -1):
+        date = (today - timedelta(days=i))
+        date_str = date.strftime("%Y-%m-%d")
+        logs = await db.food_logs.find({"user_id": user_email, "date": date_str}).to_list(500)
+        total = sum(l.get("total_calories", 0) for l in logs)
+        data.append(round(total, 1))
+        labels.append(date.strftime("%a"))
+    return {"labels": labels, "data": data}
+
+
+@api_router.get("/charts/water-weekly")
+async def chart_water_weekly(current_user = Depends(get_current_user)):
+    """Get last 7 days water totals"""
+    user_email = current_user["email"]
+    today = datetime.utcnow().date()
+    data = []
+    labels = []
+    for i in range(6, -1, -1):
+        date = (today - timedelta(days=i))
+        date_str = date.strftime("%Y-%m-%d")
+        logs = await db.water_logs.find({"user_id": user_email, "date": date_str}).to_list(500)
+        total = sum(l.get("amount_ml", 0) for l in logs)
+        data.append(total)
+        labels.append(date.strftime("%a"))
+    return {"labels": labels, "data": data}
+
+
+@api_router.get("/charts/weight-history")
+async def chart_weight_history(current_user = Depends(get_current_user)):
+    """Get last 7 weight entries"""
+    user_email = current_user["email"]
+    logs = await db.weight_logs.find({"user_id": user_email}).sort("created_at", -1).limit(7).to_list(7)
+    logs.reverse()
+    if not logs:
+        return {"labels": [], "data": []}
+    return {
+        "labels": [l["date"][5:] for l in logs],
+        "data": [round(l["weight_kg"], 1) for l in logs]
+    }
+
+
+@api_router.get("/charts/expenses-weekly")
+async def chart_expenses_weekly(current_user = Depends(get_current_user)):
+    """Get last 7 days expense totals"""
+    user_email = current_user["email"]
+    today = datetime.utcnow().date()
+    data = []
+    labels = []
+    for i in range(6, -1, -1):
+        date = (today - timedelta(days=i))
+        date_str = date.strftime("%Y-%m-%d")
+        logs = await db.expense_logs.find({"user_id": user_email, "date": date_str}).to_list(500)
+        total = sum(l.get("amount", 0) for l in logs)
+        data.append(round(total, 2))
+        labels.append(date.strftime("%a"))
+    return {"labels": labels, "data": data}
+
+
 # Include the router in the main app
 app.include_router(api_router)
-
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

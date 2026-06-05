@@ -1,17 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { foodApi } from '../../src/api/food';
+import { chartsApi } from '../../src/api/charts';
+import BottomNav from '../../src/components/BottomNav';
+import WeeklyChart from '../../src/components/WeeklyChart';
 
 export default function FoodScreen() {
   const [logs, setLogs] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<{ labels: string[]; data: number[] }>({ labels: [], data: [] });
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
-  const fetchLogs = async () => {
+  const fetchData = async () => {
     try {
-      const data = await foodApi.getFoodLogs();
+      const [data, chart] = await Promise.all([
+        foodApi.getFoodLogs(),
+        chartsApi.foodWeekly(),
+      ]);
       setLogs(data);
+      setChartData(chart);
     } catch (error) {
       console.error('Failed to fetch food logs:', error);
     } finally {
@@ -19,23 +28,20 @@ export default function FoodScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchLogs();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const deleteLog = async (id: string) => {
     try {
       await foodApi.deleteFoodLog(id);
-      fetchLogs();
+      fetchData();
     } catch (error) {
       console.error('Failed to delete:', error);
     }
   };
 
   const groupedLogs = logs.reduce((acc: any, log) => {
-    const meal = log.meal_type;
-    if (!acc[meal]) acc[meal] = [];
-    acc[meal].push(log);
+    if (!acc[log.meal_type]) acc[log.meal_type] = [];
+    acc[log.meal_type].push(log);
     return acc;
   }, {});
 
@@ -44,30 +50,40 @@ export default function FoodScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <SafeAreaView edges={['top']} style={styles.header}>
         <TouchableOpacity onPress={() => router.push('/dashboard')}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Food Diary</Text>
+        <Text style={styles.headerTitle}>🍽️ Food Diary</Text>
         <TouchableOpacity onPress={() => router.push('/food/add')}>
           <Text style={styles.addText}>+</Text>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
 
-      <View style={styles.summary}>
-        <Text style={styles.summaryValue}>{Math.round(totalCalories)}</Text>
-        <Text style={styles.summaryLabel}>Total Calories Today</Text>
-      </View>
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />}
+        contentContainerStyle={{ paddingBottom: 16 }}
+      >
+        <View style={styles.summary}>
+          <Text style={styles.summaryValue}>{Math.round(totalCalories)}</Text>
+          <Text style={styles.summaryLabel}>Calories Today</Text>
+        </View>
 
-      <FlatList
-        data={['breakfast', 'lunch', 'dinner', 'snack']}
-        keyExtractor={(item) => item}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchLogs(); }} />}
-        renderItem={({ item: mealType }) => {
+        <View style={{ paddingHorizontal: 16 }}>
+          <WeeklyChart
+            labels={chartData.labels}
+            data={chartData.data}
+            color="#ef4444"
+            unit="kcal"
+            title="📊 Last 7 Days Calories"
+          />
+        </View>
+
+        {['breakfast', 'lunch', 'dinner', 'snack'].map((mealType) => {
           const mealLogs = groupedLogs[mealType] || [];
           const mealCalories = mealLogs.reduce((sum: number, log: any) => sum + (log.total_calories || 0), 0);
           return (
-            <View style={styles.mealSection}>
+            <View key={mealType} style={styles.mealSection}>
               <View style={styles.mealHeader}>
                 <Text style={styles.mealTitle}>{mealIcons[mealType]} {mealType.charAt(0).toUpperCase() + mealType.slice(1)}</Text>
                 <Text style={styles.mealCalories}>{Math.round(mealCalories)} cal</Text>
@@ -89,35 +105,35 @@ export default function FoodScreen() {
               )}
             </View>
           );
-        }}
-        contentContainerStyle={{ paddingBottom: 80 }}
-      />
+        })}
+      </ScrollView>
 
       <TouchableOpacity style={styles.fab} onPress={() => router.push('/food/add')}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
+      <BottomNav />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f7fa' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 50, paddingBottom: 16, backgroundColor: '#fff' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12, backgroundColor: '#fff' },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: '#111827' },
   backText: { fontSize: 24, color: '#333' },
-  addText: { fontSize: 28, color: '#667eea', fontWeight: 'bold' },
-  summary: { backgroundColor: '#667eea', padding: 24, alignItems: 'center' },
-  summaryValue: { fontSize: 48, fontWeight: 'bold', color: '#fff' },
-  summaryLabel: { fontSize: 14, color: '#fff', opacity: 0.9, marginTop: 4 },
-  mealSection: { backgroundColor: '#fff', margin: 12, borderRadius: 12, padding: 16 },
-  mealHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  mealTitle: { fontSize: 16, fontWeight: '600', color: '#333' },
-  mealCalories: { fontSize: 14, color: '#667eea', fontWeight: '600' },
-  foodLog: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
-  foodName: { fontSize: 14, color: '#333', fontWeight: '500' },
-  foodMeta: { fontSize: 12, color: '#999', marginTop: 2 },
-  deleteText: { fontSize: 18, color: '#ff6b6b', padding: 8 },
-  emptyText: { fontSize: 13, color: '#999', fontStyle: 'italic', textAlign: 'center', paddingVertical: 8 },
-  fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#667eea', justifyContent: 'center', alignItems: 'center', elevation: 6 },
+  addText: { fontSize: 28, color: '#ef4444', fontWeight: 'bold' },
+  summary: { backgroundColor: '#ef4444', padding: 24, alignItems: 'center' },
+  summaryValue: { fontSize: 42, fontWeight: '800', color: '#fff' },
+  summaryLabel: { fontSize: 13, color: '#fff', opacity: 0.9, marginTop: 4 },
+  mealSection: { backgroundColor: '#fff', marginHorizontal: 16, marginTop: 8, borderRadius: 12, padding: 14 },
+  mealHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  mealTitle: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  mealCalories: { fontSize: 13, color: '#ef4444', fontWeight: '700' },
+  foodLog: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
+  foodName: { fontSize: 14, color: '#111827', fontWeight: '500' },
+  foodMeta: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
+  deleteText: { fontSize: 18, color: '#ef4444', padding: 8 },
+  emptyText: { fontSize: 12, color: '#9ca3af', fontStyle: 'italic', textAlign: 'center', paddingVertical: 6 },
+  fab: { position: 'absolute', bottom: 80, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#ef4444', justifyContent: 'center', alignItems: 'center', elevation: 6 },
   fabText: { fontSize: 32, color: '#fff', fontWeight: 'bold' },
 });

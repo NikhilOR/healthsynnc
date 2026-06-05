@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { dashboardApi } from '../src/api/dashboard';
 import { useAuthStore } from '../src/store/authStore';
+import BottomNav from '../src/components/BottomNav';
 
 const { width } = Dimensions.get('window');
 const CARD_GAP = 12;
@@ -240,8 +241,9 @@ export default function DashboardScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 80 }} />
       </ScrollView>
+      <BottomNav />
     </View>
   );
 }
