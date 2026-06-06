@@ -18,6 +18,7 @@ class ExpenseCategory(str, Enum):
     supplements = "supplements"
     restaurant = "restaurant"
     drinks = "drinks"
+    smoking = "smoking"
     other = "other"
 
 class BadgeType(str, Enum):

@@ -80,6 +80,29 @@ def calculate_bmi(weight_kg: float, height_cm: float = 170) -> float:
     height_m = height_cm / 100
     return round(weight_kg / (height_m ** 2), 2)
 
+async def get_smoking_expense_logs(query: dict, limit: int = 1000):
+    """Expose cigarette costs as virtual expense records."""
+    logs = await db.cigarette_logs.find(query).sort("created_at", -1).to_list(limit)
+    expenses = []
+    
+    for log in logs:
+        amount = log.get("cost_per_cigarette") or 0
+        if amount <= 0:
+            continue
+        
+        expenses.append({
+            "_id": f"smoking-{str(log['_id'])}",
+            "user_id": log["user_id"],
+            "item_name": log.get("brand") or "Cigarette",
+            "amount": amount,
+            "category": "smoking",
+            "date": log["date"],
+            "notes": log.get("notes"),
+            "created_at": log.get("created_at")
+        })
+    
+    return expenses
+
 # ==================== AUTH ROUTES ====================
 
 @api_router.post("/auth/register")
@@ -208,6 +231,7 @@ async def get_dashboard_summary(current_user = Depends(get_current_user)):
     }).to_list(1000)
     cigarettes_today = len(cigarettes)
     cigarette_cost_today = sum(log.get("cost_per_cigarette", 0) for log in cigarettes)
+    total_expenses += cigarette_cost_today
     
     # Calculate health score (simple algorithm)
     goals = current_user.get("goals", {})
@@ -542,9 +566,13 @@ async def get_expense_logs(
         query["date"] = datetime.utcnow().strftime("%Y-%m-%d")
     
     logs = await db.expense_logs.find(query).sort("created_at", -1).to_list(1000)
+    smoking_logs = await get_smoking_expense_logs(query)
     
     for log in logs:
         log["_id"] = str(log["_id"])
+    
+    logs.extend(smoking_logs)
+    logs.sort(key=lambda log: log.get("created_at") or datetime.min, reverse=True)
     
     return logs
 
@@ -566,6 +594,8 @@ async def get_expense_summary(period: str = "monthly", current_user = Depends(ge
         query = {"user_id": current_user["email"], "date": {"$gte": date_filter}}
     
     logs = await db.expense_logs.find(query).to_list(1000)
+    smoking_logs = await get_smoking_expense_logs(query)
+    logs.extend(smoking_logs)
     
     total = sum(log["amount"] for log in logs)
     
@@ -941,7 +971,10 @@ async def chart_expenses_weekly(current_user = Depends(get_current_user)):
     for i in range(6, -1, -1):
         date = (today - timedelta(days=i))
         date_str = date.strftime("%Y-%m-%d")
-        logs = await db.expense_logs.find({"user_id": user_email, "date": date_str}).to_list(500)
+        query = {"user_id": user_email, "date": date_str}
+        logs = await db.expense_logs.find(query).to_list(500)
+        smoking_logs = await get_smoking_expense_logs(query, limit=500)
+        logs.extend(smoking_logs)
         total = sum(l.get("amount", 0) for l in logs)
         data.append(round(total, 2))
         labels.append(date.strftime("%a"))
