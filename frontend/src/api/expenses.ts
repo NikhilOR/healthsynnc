@@ -3,7 +3,7 @@ import api from './client';
 export interface ExpenseLogCreate {
   item_name: string;
   amount: number;
-  category: 'food' | 'groceries' | 'fruits' | 'vegetables' | 'supplements' | 'restaurant' | 'drinks' | 'other';
+  category: 'food' | 'groceries' | 'fruits' | 'vegetables' | 'supplements' | 'restaurant' | 'drinks' | 'smoking' | 'other';
   notes?: string;
 }
 

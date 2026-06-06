@@ -7,10 +7,10 @@ import { chartsApi } from '../src/api/charts';
 import BottomNav from '../src/components/BottomNav';
 import WeeklyChart from '../src/components/WeeklyChart';
 
-const CATEGORIES = ['food', 'groceries', 'fruits', 'vegetables', 'supplements', 'restaurant', 'drinks', 'other'];
+const CATEGORIES = ['food', 'groceries', 'fruits', 'vegetables', 'supplements', 'restaurant', 'drinks', 'smoking', 'other'];
 const CATEGORY_ICONS: any = {
   food: '🍲', groceries: '🛒', fruits: '🍎', vegetables: '🥦',
-  supplements: '💊', restaurant: '🍽️', drinks: '🥤', other: '💰'
+  supplements: '💊', restaurant: '🍽️', drinks: '🥤', smoking: '🚬', other: '💰'
 };
 
 export default function ExpensesScreen() {
